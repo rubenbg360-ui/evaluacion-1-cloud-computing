@@ -1,0 +1,197 @@
+{
+  "name": "Monitor de Uptime - Vercel",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      },
+      "id": "262746f9-9225-48d2-b75d-94e0b901088a",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://mi-app-despliegue-vercel.app",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 15000
+        }
+      },
+      "id": "641ca444-aaa6-4f54-9f05-ddc29e5fca2e",
+      "name": "HTTP Request: Chequeo de Uptime",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        224,
+        128
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "chatId": "<__PLACEHOLDER_VALUE__ID del chat de Telegram para las alertas__>",
+        "text": "=¡Alerta de Caída! El servidor de Cloud Computing no responde.\nURL: https://mi-app-despliegue-vercel.app\nCódigo: {{ $json.statusCode || \"sin respuesta\" }}\nHora: {{ $now.toFormat(\"yyyy-MM-dd HH:mm\") }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "884ced57-ed08-4160-864c-5140e2b7acdd",
+      "name": "Alerta Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        672,
+        224
+      ],
+      "webhookId": "fc140dec-0255-4327-a571-a8848d6eea0f"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "status-200",
+              "leftValue": "={{ $json.statusCode }}",
+              "rightValue": 200,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a1fbd54f-dbde-48a1-9c53-151781bef727",
+      "name": "IF: Status Code 200?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        448,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "registro",
+              "name": "Registro",
+              "value": "El servidor está online y funcionando.",
+              "type": "string"
+            },
+            {
+              "id": "status",
+              "name": "statusCode",
+              "value": "={{ $json.statusCode }}",
+              "type": "number"
+            },
+            {
+              "id": "checkedAt",
+              "name": "checkedAt",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "5d072673-8f74-431f-964f-4f7fbd1467e2",
+      "name": "Log de Éxito",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        672,
+        0
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request: Chequeo de Uptime",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request: Chequeo de Uptime": {
+      "main": [
+        [
+          {
+            "node": "IF: Status Code 200?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Alerta Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Status Code 200?": {
+      "main": [
+        [
+          {
+            "node": "Log de Éxito",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Alerta Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "ee103128-3c6e-4054-a9c1-415d591f8d28",
+  "meta": {
+    "instanceId": "9d850210ae96887a74c6c63e77ccfbe993e4c8bbfa5d1457ef7e78bcc803d378"
+  },
+  "nodeGroups": [],
+  "id": "O84vNMHk4FTBA6eO",
+  "tags": []
+}
