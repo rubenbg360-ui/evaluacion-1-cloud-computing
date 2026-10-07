@@ -1,0 +1,258 @@
+{
+  "name": "Monitor de Uptime - Cloud Computing",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      },
+      "id": "262746f9-9225-48d2-b75d-94e0b901088a",
+      "name": "Iniciar flujo de monitoreo (Interval Timer)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        220,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://mi-app-despliegue-vercel.app",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 15000
+        }
+      },
+      "id": "641ca444-aaa6-4f54-9f05-ddc29e5fca2e",
+      "name": "Ejecutar Solicitud HTTP",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        128
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "status-200",
+              "leftValue": "={{ $json.statusCode }}",
+              "rightValue": 200,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a1fbd54f-dbde-48a1-9c53-151781bef727",
+      "name": "¿El código de estado es 200 (Éxito)?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        660,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "registro",
+              "name": "Registro",
+              "value": "El servidor está online y funcionando perfectamente.",
+              "type": "string"
+            },
+            {
+              "id": "status",
+              "name": "statusCode",
+              "value": "={{ $json.statusCode }}",
+              "type": "number"
+            },
+            {
+              "id": "checkedAt",
+              "name": "checkedAt",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "5d072673-8f74-431f-964f-4f7fbd1467e2",
+      "name": "Registrar Log de Éxito",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        880,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "<__PLACEHOLDER_VALUE__ID del chat de Telegram para las alertas__>",
+        "text": "=¡Alerta de Caída! El servidor de Cloud Computing no responde.\nURL: https://mi-app-despliegue-vercel.app\nCódigo: {{ $json.statusCode || \"Sin respuesta / Timeout\" }}\nHora: {{ $now.toFormat(\"yyyy-MM-dd HH:mm\") }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "884ced57-ed08-4160-864c-5140e2b7acdd",
+      "name": "Enviar Telegram de Alerta",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        880,
+        180
+      ],
+      "webhookId": "fc140dec-0255-4327-a571-a8848d6eea0f"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "registro_error",
+              "name": "RegistroError",
+              "value": "Incidencia detectada: Servidor caído o con error.",
+              "type": "string"
+            },
+            {
+              "id": "status",
+              "name": "statusCode",
+              "value": "={{ $json.statusCode || 500 }}",
+              "type": "number"
+            },
+            {
+              "id": "checkedAt",
+              "name": "checkedAt",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1d849202-7a28-4e8c-a12b-312891901ab2",
+      "name": "Registrar Log de Incidencia",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1100,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Encendido de Entorno Cloud o Máquina Virtual\n\n*(Entorno de ejecución donde está alojado n8n)*",
+        "height": 120,
+        "width": 320
+      },
+      "id": "9218201a-82bc-4180-b28e-0f1883908819",
+      "name": "Nota: Encendido de Entorno Cloud",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -140,
+        100
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Iniciar flujo de monitoreo (Interval Timer)": {
+      "main": [
+        [
+          {
+            "node": "Ejecutar Solicitud HTTP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ejecutar Solicitud HTTP": {
+      "main": [
+        [
+          {
+            "node": "¿El código de estado es 200 (Éxito)?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Enviar Telegram de Alerta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿El código de estado es 200 (Éxito)?": {
+      "main": [
+        [
+          {
+            "node": "Registrar Log de Éxito",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Enviar Telegram de Alerta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar Telegram de Alerta": {
+      "main": [
+        [
+          {
+            "node": "Registrar Log de Incidencia",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "ee103128-3c6e-4054-a9c1-415d591f8d28",
+  "meta": {
+    "instanceId": "9d850210ae96887a74c6c63e77ccfbe993e4c8bbfa5d1457ef7e78bcc803d378"
+  },
+  "nodeGroups": [],
+  "id": "O84vNMHk4FTBA6eO",
+  "tags": []
+}
